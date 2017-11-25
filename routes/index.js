@@ -66,7 +66,7 @@ router.get('/weight/:weight/:address', function(req, res, next) {
 
   //set now weight
   firebaseAdmin.database().ref(`nowweight/${req.params.address}/${Date.now()}`).set({weight: Number(req.params.weight)});
-  var number = 10;
+  var number = -1;
   //set now date  
   firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()}${date.getDate()-number}/${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}`).set({weight: Number(req.params.weight)});
   //get weight over date
