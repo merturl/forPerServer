@@ -14,11 +14,11 @@ var firebaseAdmin = admin.initializeApp({
 var id = 0;
 // var weight = 0;
 // var motor = 0;
-var date = new Date();
-console.log(date.getFullYear()); // return fullyear
-console.log(date.getMonth()); //return month -1
-console.log(date.getDate()); // return Date
-console.log(date.getDay()); // return Day 0,1,2,3,4,5,6 일~월
+// var date = new Date();
+// console.log(date.getFullYear()); // return fullyear
+// console.log(date.getMonth()); //return month -1
+// console.log(date.getDate()); // return Date
+// console.log(date.getDay()); // return Day 0,1,2,3,4,5,6 일~월
 
 
 /* GET home page. */
@@ -39,13 +39,23 @@ router.get('/', function(req, res, next) {
 router.get('/motor/:address', function(req, res, next) {
   var motor;
   firebaseAdmin.database().ref(`motor/${req.params.address}`).once('value', function(snapshot) {
-    motor = snapshot.val().isRotation;
-    console.log(motor);
-    res.json([
-      {
-        motor: snapshot.val().isRotation
-      }
-    ]);
+    if(snapshot.exists()){
+      console.log(snapshot.exists())
+      motor = snapshot.val().isRotation;
+      console.log(motor);
+      res.json([
+        {
+          motor: motor
+        }
+      ]);
+    }else{
+      console.log(snapshot.exists())
+      res.json([
+        {
+          motor: 0
+        }
+      ]);
+    }
   }).then(()=>{
     firebaseAdmin.database().ref(`motor/${req.params.address}`).set({isRotation: 0});
   });
@@ -61,23 +71,37 @@ router.get('/motor/:address', function(req, res, next) {
 
 router.get('/weight/:weight/:address', function(req, res, next) {
   var date = new Date();
-  
+  console.log(req.params.weight);
   // firebaseAdmin.database().ref(`weight/${req.params.address}/${Date.now()}`).set({weight: Number(req.params.weight)});
 
   //set now weight
-  firebaseAdmin.database().ref(`nowweight/${req.params.address}/${Date.now()}`).set({weight: Number(req.params.weight)});
-  var number = -1;
+  var number = 0;
   //set now date  
-  firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()}${date.getDate()-number}/${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}`).set({weight: Number(req.params.weight)});
+  
+  firebaseAdmin.database().ref(`nowweight/${req.params.address}`).once('value', snapshot=>{
+    if(snapshot.exists()){
+      console.log(snapshot.exists())
+      if(req.params.weight < snapshot.val().weight){
+        firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()+1}${date.getDate()-number}/${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}`)
+        .set({weight: Number( snapshot.val().weight-req.params.weight)});
+      }else{
+        firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()+1}${date.getDate()-number}/${date.getHours()}${date.getMinutes()}${date.getMilliseconds()}`)
+        .set({weight: Number(0)});
+      }
+    }
+  }).then(()=>{firebaseAdmin.database().ref(`nowweight/${req.params.address}`).set({weight: Number(req.params.weight)})});
   //get weight over date
-  firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()}${date.getDate()-number}`).once('value', snapshot=>{
-    var sum = 0;
-    snapshot.forEach(day=>{
-      sum += day.val().weight;
-    });
-    //set weight in db
-    console.log(sum + "hello");
-    firebaseAdmin.database().ref(`averageweight/${req.params.address}/${date.getFullYear()}${date.getMonth()}${date.getDate()-number}`).set({weight: sum/snapshot.numChildren()});
+  
+  firebaseAdmin.database().ref(`weight/${req.params.address}/${date.getFullYear()}${date.getMonth()+1}${date.getDate()-number}`).once('value', snapshot=>{
+    if(snapshot.exists()){
+      console.log(snapshot.exists())
+      var sum = 0;
+      snapshot.forEach(day=>{
+        sum += day.val().weight;
+      });
+      //set weight in db
+      firebaseAdmin.database().ref(`averageweight/${req.params.address}/${date.getFullYear()}${date.getMonth()+1}${date.getDate()-number}`).set({weight: sum});
+    }
   });
   res.send();
 });
